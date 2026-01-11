@@ -1,0 +1,16 @@
+name: Run tests
+
+on:
+  push:
+    branch: main
+  pull_request:
+
+jobs:
+  tests-ubuntu:
+    name: Test Setup (Ubuntu 24.04)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the source repository
+        uses: actions/checkout@v6
+      - name: Run bootstrap
+        run: timeout 5 ./bootstrap-scitra.bash < test/input
