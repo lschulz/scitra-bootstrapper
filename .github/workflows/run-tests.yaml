@@ -13,4 +13,4 @@ jobs:
       - name: Check out the source repository
         uses: actions/checkout@v6
       - name: Run bootstrap
-        run: timeout 5 ./bootstrap-scitra.bash < test/input
+        run: timeout 5m ./bootstrap-scitra.bash < test/input
