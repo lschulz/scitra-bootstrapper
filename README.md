@@ -54,14 +54,14 @@ Information you should have before you run the script:
 
 The script contains a small database of known bootstrap servers.
 Currently known are:
-- 71-2:0:4a OvGU Magdeburg at https://ovgu.bootstrap.scion.host
+- 71-2:0:4a OvGU Magdeburg at `https://ovgu.bootstrap.scion.host`
 
 ## For SCION AS Operators: AS Requirements ##
 In order for an AS to work with Scitra and this scripts, it must:
 - Run at least [scionproto/SCION](https://github.com/scionproto/scion) v0.14.0.
   Other implementations of SCION may work but have not been tested.
 - Provide a bootstrap server. The bootstrap server is a simple webserver that hosts the ISD's TRC
-  and an up-to-date `topology.json` file. A [simple test bootstrap][1] server is available in
+  and an up-to-date `topology.json` file. A [simple test bootstrap server][1] is available in
   Python. A more complete solution is the [SCION Orchestrator][2]. Alternatively, any web
   server with the [right directory structure][3] will do.
 - Either run its internal network on IPv4 or if using IPv6, provide AS-internally routable
@@ -86,7 +86,7 @@ If you want to add your network to the list of supported SCION ASes, please open
 
 ### 71-2:0:4a OvGU Magdeburg ###
 - Internal network: IPv4
-- Bootstrap server at https://ovgu.bootstrap.scion.host
+- Bootstrap server at `https://ovgu.bootstrap.scion.host`
 - The control service and border routers are reachable from the public Internet. For better privacy
   when connecting remotely you can use [eduVPN](https://pit.ovgu.de).
 - If you don't have a public IPv4 address (or you are using eduVPN), you must enable STUN in Scitra.
