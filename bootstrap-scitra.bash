@@ -103,10 +103,7 @@ while true; do
     curl -fsSL "$bootstrap/trcs" > "$temp/trcs" || exit 1
     mkdir "$temp/certs"
     for trc in $(jq -r '.[].id|"isd\(.isd)-b\(.base_number)-s\(.serial_number)"' "$temp/trcs"); do
-        if ! curl -fsSL "$bootstrap/trcs/$trc" -o "$temp/certs/${trc^^}.trc"; then
-            echo "Try workaround for buggy bootstrap server"
-            curl -fsSL "$bootstrap/certs/${trc^^}.trc" -o "$temp/certs/${trc^^}.trc" || exit 1
-        fi
+        curl -fsSL "$bootstrap/trcs/$trc/blob" -o "$temp/certs/${trc^^}.trc" || exit 1
     done
     for trc in $temp/certs/*.trc; do
         echo "### $(basename $trc) ###"
@@ -146,10 +143,7 @@ curl -fsSL "$bootstrap/topology" > "\$temp/topology.json" || exit 1
 curl -fsSL "$bootstrap/trcs" > "\$temp/trcs" || exit 1
 mkdir "\$temp/certs"
 for trc in \$(jq -r '.[].id|"isd\(.isd)-b\(.base_number)-s\(.serial_number)"' "\$temp/trcs"); do
-    if ! curl -fsSL "$bootstrap/trcs/\$trc" -o "\$temp/certs/\${trc^^}.trc"; then
-        echo "Try workaround for buggy bootstrap server"
-        curl -fsSL "$bootstrap/certs/\${trc^^}.trc" -o "\$temp/certs/\${trc^^}.trc" || exit 1
-    fi
+    curl -fsSL "$bootstrap/trcs/\$trc/blob" -o "\$temp/certs/\${trc^^}.trc" || exit 1
 done
 cp "\$temp/topology.json" /etc/scion/topology.json
 rm /etc/scion/certs/* 2> /dev/null
@@ -215,14 +209,12 @@ sudo systemctl daemon-reload
 
 echo "Enable and start scion-daemon"
 sudo systemctl enable scion-daemon.service
-sudo systemctl start scion-daemon.service
-sleep 2
-
 if [ -f /etc/systemd/system/update-scion.timer ]; then
     sudo systemctl enable update-scion.timer
     sudo systemctl start update-scion.timer
-    sleep 1
 fi
+sudo systemctl start scion-daemon.service
+sleep 2
 
 echo "Verify SCION path availability"
 enable_stun=0
