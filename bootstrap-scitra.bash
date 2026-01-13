@@ -14,6 +14,19 @@ fi
 
 echo "This script will configure your computer as a SCION end host with" \
 "Scitra-TUN as SCION-IP translator." | fold -s -w $WIDTH
+
+wsl=0
+if which wslinfo; then
+    wsl=1
+    wsl_networking_mode=$(wslinfo --networking-mode)
+    echo "WSL networking mode: $(wsl_networking_mode)"
+    echo "It appears you are running WSL. It is recommended that you add"
+    echo "[network]"
+    echo "generateHosts = false"
+    echo "generateResolvConf = false"
+    echo "to /etc/wsl.conf and reboot before running this setup script."
+fi
+
 read -n1 -r -p "Proceed? (y/n) "; echo && [[ "$REPLY" == [yY] ]] || exit 1
 
 #-------------------------------------------------------------------------------
@@ -292,6 +305,12 @@ sed "/^interface/c\interface = $host_interface" /etc/scion/scitra-tun.conf \
 
 echo "Add localhost.scion to /etc/hosts"
 (sed "/localhost.scion/d" /etc/hosts; echo "$mapped_address localhost.scion") | sudo sponge /etc/hosts
+if [[ $wsl -eq 1 ]]; then
+    echo "For WSL2 users: Consider adding"
+    echo "[network]"
+    echo "generateHosts = false"
+    echo "to /etc/wsl.conf to prevent the hosts file from being overwritten by WSL."
+fi
 
 echo "Enable and start Scitra-TUN"
 sudo systemctl enable scitra-tun.service
@@ -310,19 +329,41 @@ fi
 #-------------------------------------------------------------------------------
 
 echo -e "\n\033[1mStep 5: (Optional) Configure SCION DNS\033[0m"
-echo "In order to resolve SCION DNS TXT entries to IPv6 addresses for Scitra-TUN" \
-"you need a suitable DNS server. This script can set up $SCION_DNS_SERVER as resolver" \
-"for domains scion, scion.host and scion.fast. If you want a different configuration" \
-"consider editing /usr/share/scitra-tun/config-dns manually." | fold -s -w $WIDTH
-read -n1 -r -p "Configure SCION DNS (y/n) "; echo
-if [[ "$REPLY" == [yY] ]]; then
-    sed "/^ENABLE/c\ENABLE=1" /usr/share/scitra-tun/config-dns \
-    | sed "/^SCION_DNS_SERVER/c\SCION_DNS_SERVER=$(scion2ip $SCION_DNS_SERVER)" \
-    | sed "/^DNS_DOMAIN/c\DNS_DOMAIN=\"~scion ~scion.host ~scion.fast\"" \
-    | sudo sponge /usr/share/scitra-tun/config-dns
+enable_dns=0
+if systemctl status systemd-resolved.service > /dev/null; then
+    echo "In order to resolve SCION DNS TXT entries to IPv6 addresses for Scitra-TUN" \
+    "you need a suitable DNS server. This script can set up $SCION_DNS_SERVER as resolver" \
+    "for domains scion, scion.host and scion.fast. If you want a different configuration" \
+    "consider editing /usr/share/scitra-tun/config-dns manually." | fold -s -w $WIDTH
+    resolv_mode=$(resolvectl status | sed -rn 's/[[:space:]]*resolv.conf mode:[[:space:]]*(.*)/\1/p')
+    if [[ $resolv_mode == "foreign" ]]; then
+        echo "WARNING: Detected a resolv.conf mode of $resolv_mode. The SCION DNS configured by" \
+        "this script will likely not work." | fold -s -w $WIDTH
+        if [[ $wsl -eq 1 ]]; then
+            echo "For WSL2 users: This can be fixed by adding"
+            echo "[network]"
+            echo "generateResolvConf = false"
+            echo "to /etc/wsl.conf and rebooting."
+        fi
+    fi
+    read -n1 -r -p "Configure SCION DNS (y/n) "; echo
+    if [[ "$REPLY" == [yY] ]]; then
+        enable_dns=1
+    fi
+else
+    echo "Skipping DNS configuration, because the system is not using systemd-resolved." \
+    "Consider editing /usr/share/scitra-tun/config-dns manually." | fold -s -w $WIDTH
+fi
 
+sed "/^ENABLE/c\ENABLE=$enable_dns" /usr/share/scitra-tun/config-dns \
+| sed "/^SCION_DNS_SERVER/c\SCION_DNS_SERVER=$(scion2ip $SCION_DNS_SERVER)" \
+| sed "/^DNS_DOMAIN/c\DNS_DOMAIN=\"~scion ~scion.host ~scion.fast\"" \
+| sudo sponge /usr/share/scitra-tun/config-dns
+
+if [[ $enable_dns -eq 1 ]]; then
     sudo systemctl restart scitra-tun
-
+    sleep 1
+    sudo resolvectl flush-caches
     echo "Verify DNS-over-SCION"
     ping -p ff -e 65535 -6 -c2 $DNS_TEST_TARGET > /dev/null # preload path cache
     if ping -p ff -e 65535 -6 -c1 $DNS_TEST_TARGET > /dev/null; then
@@ -336,9 +377,11 @@ fi
 #-------------------------------------------------------------------------------
 
 echo -e "\n\033[1mSetup complete\033[0m"
-read -n1 -r -p "Open https://welcome.scion.host in a browser? (y/n) "; echo
-if [[ "$REPLY" == [yY] ]]; then
-    xdg-open https://welcome.scion.host
+if [[ $enable_dns -eq 1 ]]; then
+    read -n1 -r -p "Open https://welcome.scion.host in a browser? (y/n) "; echo
+    if [[ "$REPLY" == [yY] ]]; then
+        xdg-open https://welcome.scion.host
+    fi
 fi
 
 exit 0
