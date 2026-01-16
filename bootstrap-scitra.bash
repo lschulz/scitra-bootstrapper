@@ -16,10 +16,10 @@ echo "This script will configure your computer as a SCION end host with" \
 "Scitra-TUN as SCION-IP translator." | fold -s -w $WIDTH
 
 wsl=0
-if which wslinfo; then
+if which wslinfo > /dev/null; then
     wsl=1
     wsl_networking_mode=$(wslinfo --networking-mode)
-    echo "WSL networking mode: $(wsl_networking_mode)"
+    echo "WSL networking mode: $wsl_networking_mode"
     echo "It appears you are running WSL. It is recommended that you add"
     echo "[network]"
     echo "generateHosts = false"
@@ -337,7 +337,7 @@ if systemctl status systemd-resolved.service > /dev/null; then
     "consider editing /usr/share/scitra-tun/config-dns manually." | fold -s -w $WIDTH
     resolv_mode=$(resolvectl status | sed -rn 's/[[:space:]]*resolv.conf mode:[[:space:]]*(.*)/\1/p')
     if [[ $resolv_mode == "foreign" ]]; then
-        echo "WARNING: Detected a resolv.conf mode of $resolv_mode. The SCION DNS configured by" \
+        echo "WARNING: Detected a resolv.conf mode of '$resolv_mode'. The SCION DNS configured by" \
         "this script will likely not work." | fold -s -w $WIDTH
         if [[ $wsl -eq 1 ]]; then
             echo "For WSL2 users: This can be fixed by adding"
