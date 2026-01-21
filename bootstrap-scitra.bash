@@ -159,7 +159,6 @@ for trc in \$(jq -r '.[].id|"isd\(.isd)-b\(.base_number)-s\(.serial_number)"' "\
     curl -fsSL "$bootstrap/trcs/\$trc/blob" -o "\$temp/certs/\${trc^^}.trc" || exit 1
 done
 cp "\$temp/topology.json" /etc/scion/topology.json
-rm /etc/scion/certs/* 2> /dev/null
 mkdir -p /etc/scion/certs
 cp \$temp/certs/*.trc /etc/scion/certs
 rm -r "\$temp"
