@@ -303,7 +303,7 @@ sed "/^interface/c\interface = $host_interface" /etc/scion/scitra-tun.conf \
 | sudo sponge /etc/scion/scitra-tun.conf
 
 echo "Add localhost.scion to /etc/hosts"
-(sed "/localhost.scion/d" /etc/hosts; echo "$mapped_address localhost.scion") | sudo sponge /etc/hosts
+(sed "/localhost.scion/d" /etc/hosts; echo "$bind_address localhost.scion") | sudo sponge /etc/hosts
 if [[ $wsl -eq 1 ]]; then
     echo "For WSL2 users: Consider adding"
     echo "[network]"
